@@ -1,4 +1,4 @@
-import { motion } from 'motion/react';
+import { motion, useReducedMotion } from 'motion/react';
 import { cn } from 'cn';
 import type { Progress } from '@/lib/task';
 
@@ -9,6 +9,7 @@ type ProgressCardProps = { progress: Progress; className?: string };
 
 export function ProgressCard({ progress, className }: ProgressCardProps) {
   const { done, total, percent } = progress;
+  const reduceMotion = useReducedMotion();
   const message =
     total === 0 ? 'Chưa có việc' : done === total ? 'Xong hết rồi! 🎉' : `Còn ${total - done} việc`;
 
@@ -30,7 +31,8 @@ export function ProgressCard({ progress, className }: ProgressCardProps) {
               strokeDashoffset: CIRCUMFERENCE * (1 - percent / 100),
               opacity: percent === 0 ? 0 : 1,
             }}
-            transition={{ type: 'spring', stiffness: 120, damping: 20 }}
+            // MotionConfig reducedMotion="user" chỉ tắt transform/layout; vòng tiến độ phải tự tắt.
+            transition={reduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 120, damping: 20 }}
           />
         </svg>
         <span className="absolute inset-0 grid place-items-center text-lg font-semibold tabular-nums">
