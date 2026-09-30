@@ -1,0 +1,91 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+@import '@fontsource/be-vietnam-pro/400.css';
+@import '@fontsource/be-vietnam-pro/500.css';
+@import '@fontsource/be-vietnam-pro/600.css';
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --radius: 0.75rem;
+  --background: oklch(0.975 0.008 270);
+  --foreground: oklch(0.22 0.03 270);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.22 0.03 270);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.22 0.03 270);
+  --primary: oklch(0.511 0.262 276.966);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.955 0.012 270);
+  --secondary-foreground: oklch(0.22 0.03 270);
+  --muted: oklch(0.955 0.012 270);
+  --muted-foreground: oklch(0.5 0.03 270);
+  --accent: oklch(0.94 0.03 277);
+  --accent-foreground: oklch(0.22 0.03 270);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.9 0.015 270);
+  --input: oklch(0.9 0.015 270);
+  --ring: oklch(0.585 0.233 277.117);
+}
+
+.dark {
+  --background: oklch(0.17 0.025 272);
+  --foreground: oklch(0.96 0.006 270);
+  --card: oklch(0.23 0.03 272);
+  --card-foreground: oklch(0.96 0.006 270);
+  --popover: oklch(0.23 0.03 272);
+  --popover-foreground: oklch(0.96 0.006 270);
+  --primary: oklch(0.673 0.182 276.935);
+  --primary-foreground: oklch(0.17 0.025 272);
+  --secondary: oklch(0.28 0.03 272);
+  --secondary-foreground: oklch(0.96 0.006 270);
+  --muted: oklch(0.28 0.03 272);
+  --muted-foreground: oklch(0.72 0.03 270);
+  --accent: oklch(0.3 0.06 277);
+  --accent-foreground: oklch(0.96 0.006 270);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.673 0.182 276.935);
+}
+
+@theme inline {
+  --font-sans: 'Be Vietnam Pro', ui-sans-serif, system-ui, sans-serif;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+/* Thẻ kính mờ: nền bán trong suốt + blur + viền nhạt. */
+@utility glass {
+  @apply border border-white/60 bg-card/60 shadow-xl shadow-indigo-950/5 backdrop-blur-xl backdrop-saturate-150 dark:border-white/10 dark:bg-card/45 dark:shadow-black/20;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background font-sans text-foreground antialiased;
+  }
+}
