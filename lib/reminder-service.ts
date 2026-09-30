@@ -16,8 +16,8 @@ export async function syncAlarm(id: string, task: Task | undefined, now = Date.n
   const when = task ? alarmTimeFor(task, now) : undefined;
   if (when === undefined) await browser.alarms.clear(name);
   else await browser.alarms.create(name, { when });
-  // Task xong, bị xoá hoặc dời sang giờ mới thì cất thông báo cũ (nếu có).
-  if (!task || task.status === 'done' || when !== undefined) await browser.notifications.clear(name);
+  // Task xong, bị xoá hoặc dời sang giờ mới (chưa nhắc) thì cất thông báo cũ (nếu có).
+  if (!task || task.status === 'done' || (when !== undefined && task.remindedFor !== dueKey(task))) await browser.notifications.clear(name);
 }
 
 /** Nhắc task nếu đủ điều kiện: thông báo hệ thống, ghi remindedFor, báo cho trang đang mở. */

@@ -79,6 +79,21 @@ describe('syncAlarm', () => {
     expect(await browser.alarms.get('task:a')).toMatchObject({ scheduledTime: at(11, 0) });
   });
 
+  it('task đã nhắc rồi dời sang giờ mới ở tương lai thì cất thông báo cũ', async () => {
+    await browser.notifications.create('task:a', {
+      type: 'basic',
+      title: 'x',
+      message: 'y',
+      iconUrl: 'z',
+    });
+
+    // Đã nhắc cho mốc 10:00, người dùng dời sang 11:00: mốc mới chưa nhắc nên thông báo cũ phải đi.
+    await syncAlarm('a', task('a', { dueTime: '11:00', remindedFor: '2026-10-01T10:00' }), at(10, 5));
+
+    expect(notifications()).toEqual({});
+    expect(await browser.alarms.get('task:a')).toMatchObject({ scheduledTime: at(11, 0) });
+  });
+
   it('giờ đã qua (vừa nhắc xong) thì giữ thông báo đang hiện', async () => {
     await browser.notifications.create('task:a', {
       type: 'basic',
@@ -247,6 +262,30 @@ describe('registerReminderHandlers', () => {
     await queue.idle();
 
     expect(create).toHaveBeenCalledOnce();
+  });
+
+  it('alarm kêu sớm trong dung sai thì không cất thông báo vừa nhắc', async () => {
+    // Alarm kêu sớm 5 giây so với giờ hẹn 10:00: vẫn nằm trong dung sai 60 giây nên được nhắc.
+    vi.useFakeTimers({ toFake: ['Date'], now: at(10, 0) - 5_000 });
+    const queue = registerReminderHandlers();
+    await saveTask(task('a'));
+    await queue.idle();
+    const createAlarm = vi.spyOn(browser.alarms, 'create');
+
+    await fakeBrowser.alarms.onAlarm.trigger({
+      name: 'task:a',
+      scheduledTime: at(10, 0),
+      persistAcrossSessions: true,
+    });
+    await queue.idle();
+    // Ghi remindedFor làm watcher đẩy thêm một việc syncAlarm vào hàng đợi; chờ nốt việc đó.
+    await queue.idle();
+
+    // Giờ hẹn vẫn ở tương lai nên syncAlarm đặt lại alarm, nhưng mốc này đã nhắc rồi:
+    // thông báo vừa hiện phải còn nguyên (nếu bị cất thì người dùng không bao giờ thấy nó).
+    expect((await loadTask('a'))?.remindedFor).toBe('2026-10-01T10:00');
+    expect(createAlarm).toHaveBeenCalledWith('task:a', { when: at(10, 0) });
+    expect(Object.keys(notifications())).toEqual(['task:a']);
   });
 
   it('khởi động → dựng lại alarm', async () => {
