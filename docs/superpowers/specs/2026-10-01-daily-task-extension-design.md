@@ -1,7 +1,7 @@
 # Thiết kế: Extension Chrome "Việc hôm nay" (Daily Task Tracker)
 
 - Ngày: 2026-10-01
-- Trạng thái: đã duyệt thiết kế, chờ duyệt spec
+- Trạng thái: đã duyệt; kế hoạch triển khai: `docs/superpowers/plans/2026-10-01-daily-task-extension.md`
 - Repo: `d:\projects\daily-task-extension` (repo riêng, commit thẳng `master`)
 
 ## 1. Mục tiêu
@@ -51,22 +51,25 @@ daily-task-extension/
 │  ├─ TaskDialog.tsx        # thêm/sửa, kính mờ
 │  ├─ ProgressCard.tsx
 │  ├─ NextUpCard.tsx
-│  └─ ui/                   # shadcn: button, dialog, checkbox, input, textarea, sonner…
+│  ├─ undoDeleteToast.ts    # Toast "Đã xoá · Hoàn tác" dùng chung
+│  └─ ui/                   # shadcn: button, dialog, checkbox, input, label, textarea, sonner
 ├─ lib/
-│  ├─ date.ts               # tiện ích ngày giờ theo giờ máy (todayKey, toDueAt, …)
+│  ├─ date.ts               # tiện ích ngày giờ theo giờ máy + định dạng tiếng Việt
 │  ├─ task.ts               # kiểu Task, validate, lọc theo ngày, quá hạn, sắp xếp, tiến độ
 │  ├─ task-storage.ts       # đọc/ghi/lắng nghe key task:* trong chrome.storage.local
-│  └─ reminders.ts          # hàm thuần: lịch alarm, điều kiện nhắc, cửa sổ lỡ nhắc
+│  ├─ reminders.ts          # hàm thuần: lịch alarm, điều kiện nhắc, cửa sổ lỡ nhắc
+│  ├─ reminder-service.ts   # logic của service worker (alarm, thông báo, hàng đợi)
+│  └─ theme.ts              # đọc/ghi/áp theme
 ├─ store/useTaskStore.ts    # Zustand
 └─ hooks/
    ├─ useReminders.ts       # nhận tin từ background → Toast
-   ├─ useToday.ts           # ngày hiện tại, tự đổi khi qua nửa đêm
+   ├─ useNow.ts             # thời điểm hiện tại, nhảy theo phút; ngày tự đổi khi qua nửa đêm
    └─ useTheme.ts
 ```
 
 **Quyền manifest:** `storage`, `alarms`, `notifications`. Không có host permission.
 
-**Stack:** WXT, React, TypeScript, Tailwind CSS v4, shadcn/ui (Toast dùng **Sonner**), Zustand, Lucide React, Motion (`motion/react`, tên mới của Framer Motion), Vitest. Font **Be Vietnam Pro** đóng gói trong extension (qua Fontsource), không tải từ mạng. Phiên bản cụ thể chốt lúc cài.
+**Stack (đã kiểm chứng 2026-10-01):** WXT 0.21, React 19, TypeScript 5.9, Tailwind CSS v4, shadcn/ui 4 (style `radix-nova`, hàm `cn` từ package `cn`; Toast dùng **Sonner**), Zustand 5, Lucide React, Motion 13 (`motion/react`, tên mới của Framer Motion), Vitest 5 + happy-dom + Testing Library. Font **Be Vietnam Pro** đóng gói trong extension (qua Fontsource), không tải từ mạng.
 
 ## 4. Dữ liệu và lưu trữ
 
@@ -112,7 +115,7 @@ type Task = {
 
 ```
 ┌──────────────────────────────────────────────────────┐
-│ Chào buổi sáng 👋   Thứ Tư, 1/10 · 09:41   [☀/☾]     │
+│ Chào buổi sáng 👋   Thứ Năm, 1/10 · 09:41  [☀/☾]     │
 │                  ‹  Hôm nay  ›                        │
 ├───────────────────────────────────┬──────────────────┤
 │ [+ Thêm việc cho hôm nay…    ⏎][⋯]│  ◔ Tiến độ       │
@@ -158,7 +161,7 @@ type Task = {
 
 ### 5.4 Trường hợp biên
 
-- Tab để mở qua nửa đêm: `useToday` hẹn giờ tới nửa đêm kế tiếp và kiểm tra lại khi tab hiện lại (`visibilitychange`) ⇒ "Hôm nay", nhóm Quá hạn và Tiếp theo tự cập nhật.
+- Tab để mở qua nửa đêm: `useNow` cập nhật đúng lúc đổi phút và khi tab hiện lại (`visibilitychange`); "hôm nay" suy ra từ giá trị này ⇒ "Hôm nay", nhóm Quá hạn và Tiếp theo tự cập nhật.
 
 ## 6. Nhắc việc
 
@@ -173,7 +176,7 @@ type Task = {
 Background đọc lại task và **chỉ nhắc khi đủ tất cả điều kiện**:
 
 1. task còn tồn tại và `status = 'todo'`;
-2. có `dueTime` và `dueAt ≤ bây giờ + 60 giây` (alarm cũ lỗi thời không nhắc sớm);
+2. có `dueTime` và `dueAt` nằm trong **(bây giờ − 60 phút, bây giờ + 60 giây]** — alarm lỗi thời không nhắc sớm; alarm kêu trễ hơn 60 phút (máy ngủ lâu rồi thức dậy) cũng không nhắc, cùng lý do với 6.3;
 3. `remindedFor ≠ mốc hiện tại`.
 
 Khi nhắc:
@@ -207,7 +210,7 @@ Lúc `onStartup`/`onInstalled`: task `todo` có `dueAt` trong khoảng **(bây g
 
 - `lib/date.ts`, `lib/task.ts`: lọc theo ngày; xác định quá hạn; sắp xếp các nhóm; tiến độ; validate; mốc biên 23:59 → 00:00.
 - `lib/reminders.ts`: task nào cần alarm và `when`; điều kiện nhắc (đã xong, đã đổi giờ, đã nhắc, alarm lỗi thời); cửa sổ lỡ nhắc 60 phút.
-- `store/useTaskStore.ts`, `background.ts`: chạy với `fakeBrowser` của WXT (`wxt/testing`) — CRUD ghi đúng key, rollback khi ghi lỗi, nhận thay đổi từ ngoài, đặt/huỷ alarm khi task đổi, nhắc đúng một lần.
+- `store/useTaskStore.ts`, `background.ts`: chạy với `fakeBrowser` của WXT (`wxt/testing/fake-browser`) — CRUD ghi đúng key, rollback khi ghi lỗi, nhận thay đổi từ ngoài, đặt/huỷ alarm khi task đổi, nhắc đúng một lần.
 
 **Thủ công trên Chrome thật (checklist trong README):**
 
