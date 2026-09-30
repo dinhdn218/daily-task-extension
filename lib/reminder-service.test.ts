@@ -64,6 +64,34 @@ describe('syncAlarm', () => {
     await syncAlarm('b', undefined, at(9, 0));
     expect(await alarmNames()).toEqual([]);
   });
+
+  it('dời giờ sang tương lai thì cất thông báo cũ', async () => {
+    await browser.notifications.create('task:a', {
+      type: 'basic',
+      title: 'x',
+      message: 'y',
+      iconUrl: 'z',
+    });
+
+    await syncAlarm('a', task('a', { dueTime: '11:00' }), at(10, 5));
+
+    expect(notifications()).toEqual({});
+    expect(await browser.alarms.get('task:a')).toMatchObject({ scheduledTime: at(11, 0) });
+  });
+
+  it('giờ đã qua (vừa nhắc xong) thì giữ thông báo đang hiện', async () => {
+    await browser.notifications.create('task:a', {
+      type: 'basic',
+      title: 'x',
+      message: 'y',
+      iconUrl: 'z',
+    });
+
+    await syncAlarm('a', task('a', { remindedFor: '2026-10-01T10:00' }), at(10, 0));
+
+    expect(Object.keys(notifications())).toEqual(['task:a']);
+    expect(await alarmNames()).toEqual([]);
+  });
 });
 
 describe('remindIfDue', () => {
@@ -87,6 +115,8 @@ describe('remindIfDue', () => {
   });
 
   it('không ghi đè thay đổi mà trang vừa ghi trong lúc đang tạo thông báo', async () => {
+    const onMessage = vi.fn();
+    browser.runtime.onMessage.addListener(onMessage);
     await saveTask(task('a'));
     vi.spyOn(browser.notifications, 'create').mockImplementationOnce(async () => {
       // Người dùng tick xong đúng lúc thông báo đang được tạo.
@@ -99,6 +129,8 @@ describe('remindIfDue', () => {
     const saved = await loadTask('a');
     expect(saved).toMatchObject({ status: 'done', completedAt: at(10, 0) });
     expect(saved?.remindedFor).toBeUndefined();
+    // Task đã xong rồi thì trang không được hiện Toast nhắc.
+    expect(onMessage).not.toHaveBeenCalled();
   });
 
   it('không lỗi khi không có trang nào mở', async () => {
@@ -130,6 +162,22 @@ describe('rebuildAlarms', () => {
     expect(await alarmNames()).toEqual(['other', 'task:future']);
     expect(Object.keys(notifications())).toEqual(['task:missed']);
     expect(notifications()['task:missed']?.message).toBe('Đã quá giờ · 09:30');
+  });
+
+  it('lỗi ở một task không chặn các task khác', async () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    await saveTask(task('bad', { dueTime: '11:00' }));
+    await saveTask(task('good', { dueTime: '11:30' }));
+    const create = browser.alarms.create.bind(browser.alarms);
+    vi.spyOn(browser.alarms, 'create').mockImplementation(async (name: string, info) => {
+      if (name === 'task:bad') throw new Error('boom');
+      return create(name, info);
+    });
+
+    await rebuildAlarms(at(10, 0));
+
+    expect(await alarmNames()).toContain('task:good');
+    expect(error).toHaveBeenCalledOnce();
   });
 });
 

@@ -16,8 +16,8 @@ export async function syncAlarm(id: string, task: Task | undefined, now = Date.n
   const when = task ? alarmTimeFor(task, now) : undefined;
   if (when === undefined) await browser.alarms.clear(name);
   else await browser.alarms.create(name, { when });
-  // Task đã xong hoặc bị xoá thì cất luôn thông báo đang hiện (nếu có).
-  if (!task || task.status === 'done') await browser.notifications.clear(name);
+  // Task xong, bị xoá hoặc dời sang giờ mới thì cất thông báo cũ (nếu có).
+  if (!task || task.status === 'done' || when !== undefined) await browser.notifications.clear(name);
 }
 
 /** Nhắc task nếu đủ điều kiện: thông báo hệ thống, ghi remindedFor, báo cho trang đang mở. */
@@ -35,7 +35,8 @@ export async function remindIfDue(id: string, now = Date.now()) {
   });
   // Đọc lại trước khi ghi: trong lúc chờ tạo thông báo, trang có thể vừa tick/sửa/xoá task.
   const latest = await loadTask(id);
-  if (shouldRemind(latest, now)) await saveTask({ ...latest, remindedFor: dueKey(latest) });
+  if (!shouldRemind(latest, now)) return;
+  await saveTask({ ...latest, remindedFor: dueKey(latest) });
   const message: ReminderMessage = { type: 'reminder', taskId: id };
   try {
     await browser.runtime.sendMessage(message);
@@ -46,18 +47,22 @@ export async function remindIfDue(id: string, now = Date.now()) {
 
 /** Khi Chrome khởi động / extension cài hoặc cập nhật: dựng lại toàn bộ alarm, rồi nhắc bù. */
 export async function rebuildAlarms(now = Date.now()) {
+  const tasks = Object.values(await loadAllTasks());
   const alarms = await browser.alarms.getAll();
   await Promise.all(
     alarms
       .filter((alarm) => taskIdFromReminderId(alarm.name) !== undefined)
       .map((alarm) => browser.alarms.clear(alarm.name)),
   );
-  const tasks = Object.values(await loadAllTasks());
   for (const task of tasks) {
-    const when = alarmTimeFor(task, now);
-    if (when !== undefined) await browser.alarms.create(reminderId(task.id), { when });
+    try {
+      const when = alarmTimeFor(task, now);
+      if (when !== undefined) await browser.alarms.create(reminderId(task.id), { when });
+      else if (shouldRemind(task, now)) await remindIfDue(task.id, now);
+    } catch (error) {
+      console.error('[reminders]', task.id, error);
+    }
   }
-  for (const task of tasks) await remindIfDue(task.id, now);
 }
 
 export async function completeFromNotification(id: string, now = Date.now()) {
