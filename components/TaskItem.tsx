@@ -40,6 +40,7 @@ export function TaskItem({ task, now, overdue = false, onEdit }: TaskItemProps) 
     >
       <motion.span
         className="flex"
+        tabIndex={-1}
         whileTap={{ scale: 0.85 }}
         animate={done ? { scale: [1, 1.25, 1] } : { scale: 1 }}
         transition={{ duration: 0.3 }}

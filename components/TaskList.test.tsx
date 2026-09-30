@@ -72,6 +72,15 @@ describe('TaskList', () => {
     expect(screen.getByText('Việc next')).toBeInTheDocument();
   });
 
+  it('Tab đi thẳng vào checkbox, không có điểm dừng thừa', async () => {
+    const user = userEvent.setup();
+    setTasks(task('a', { title: 'Họp team' }));
+    renderList();
+
+    await user.tab();
+    expect(screen.getByRole('checkbox', { name: 'Đánh dấu xong: Họp team' })).toHaveFocus();
+  });
+
   it('tick checkbox → task xong; thu gọn nhóm Đã xong', async () => {
     const user = userEvent.setup();
     setTasks(task('a', { title: 'Họp team' }));
