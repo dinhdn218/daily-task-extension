@@ -41,6 +41,13 @@ export function shouldRemind(task: Task | undefined, now: number): task is Task 
   return at <= now + ON_TIME_TOLERANCE_MS && at > now - MISSED_WINDOW_MS;
 }
 
+/** Task lưu với giờ đã qua thì coi như đã nhắc, để bước nhắc bù không báo lại. */
+export function markPastDueReminded(task: Task, now: number): Task {
+  const at = dueAt(task);
+  if (task.status !== 'todo' || at === undefined || at > now) return task;
+  return { ...task, remindedFor: dueKey(task) };
+}
+
 /** 'Đến giờ · 10:00' hoặc 'Đã quá giờ · 09:00'. */
 export function reminderHeadline(task: Task, now: number): string {
   const late = now - (dueAt(task) ?? now) > ON_TIME_TOLERANCE_MS;

@@ -69,8 +69,15 @@ describe('actions', () => {
   it('addTask tạo task mới trong store và storage', async () => {
     const created = await state().addTask(input({ title: '  Họp  ' }));
     expect(created).toMatchObject({ title: 'Họp', status: 'todo', createdAt: NOW, dueTime: '10:00' });
+    expect(created?.remindedFor).toBeUndefined();
     expect(state().tasks[created!.id]).toEqual(created);
     expect(await loadTask(created!.id)).toEqual(created);
+  });
+
+  it('addTask với giờ đã qua thì đánh dấu đã nhắc, để nhắc bù không báo lại', async () => {
+    const created = await state().addTask(input({ dueTime: '08:00' }));
+    expect(created).toMatchObject({ remindedFor: '2026-10-01T08:00' });
+    expect(await loadTask(created!.id)).toMatchObject({ remindedFor: '2026-10-01T08:00' });
   });
 
   it('updateTask ghi đè các trường từ form', async () => {
@@ -79,6 +86,16 @@ describe('actions', () => {
     const saved = await loadTask(created.id);
     expect(saved).toMatchObject({ title: 'Mới' });
     expect(saved?.dueTime).toBeUndefined();
+  });
+
+  it('updateTask sang giờ đã qua thì đánh dấu đã nhắc', async () => {
+    const created = (await state().addTask(input()))!;
+    expect(created.remindedFor).toBeUndefined();
+    await state().updateTask(created.id, input({ dueTime: '08:00' }));
+    expect(await loadTask(created.id)).toMatchObject({
+      dueTime: '08:00',
+      remindedFor: '2026-10-01T08:00',
+    });
   });
 
   it('toggleTask chuyển todo ↔ done', async () => {
@@ -100,6 +117,16 @@ describe('actions', () => {
     const created = (await state().addTask(input({ dueDate: '2026-09-29' })))!;
     await state().moveToToday(created.id);
     expect(await loadTask(created.id)).toMatchObject({ dueDate: '2026-10-01', dueTime: '10:00' });
+  });
+
+  it('moveToToday sang hôm nay với giờ đã qua thì đánh dấu đã nhắc cho mốc mới', async () => {
+    const created = (await state().addTask(input({ dueDate: '2026-09-29', dueTime: '08:00' })))!;
+    await state().moveToToday(created.id);
+    expect(await loadTask(created.id)).toMatchObject({
+      dueDate: '2026-10-01',
+      dueTime: '08:00',
+      remindedFor: '2026-10-01T08:00',
+    });
   });
 
   it('deleteTask xoá và trả về task để hoàn tác bằng restoreTask', async () => {

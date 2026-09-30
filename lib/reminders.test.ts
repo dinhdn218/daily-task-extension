@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   alarmTimeFor,
   isReminderMessage,
+  markPastDueReminded,
   reminderHeadline,
   reminderId,
   reminderMessage,
@@ -72,6 +73,30 @@ describe('shouldRemind', () => {
     expect(
       shouldRemind(task({ dueTime: '10:30', remindedFor: '2026-10-01T10:00' }), at(10, 30)),
     ).toBe(true);
+  });
+});
+
+describe('markPastDueReminded', () => {
+  it('giờ đã qua (hoặc đúng lúc này) → đánh dấu đã nhắc cho mốc đó', () => {
+    expect(markPastDueReminded(task(), at(10, 30))).toEqual(
+      task({ remindedFor: '2026-10-01T10:00' }),
+    );
+    expect(markPastDueReminded(task(), at(10, 0)).remindedFor).toBe('2026-10-01T10:00');
+  });
+
+  it('giờ ở tương lai → giữ nguyên', () => {
+    const future = task();
+    expect(markPastDueReminded(future, at(9, 0))).toBe(future);
+  });
+
+  it('task không có giờ → giữ nguyên', () => {
+    const untimed = task({ dueTime: undefined });
+    expect(markPastDueReminded(untimed, at(10, 30))).toBe(untimed);
+  });
+
+  it('task đã xong → giữ nguyên', () => {
+    const done = task({ status: 'done' });
+    expect(markPastDueReminded(done, at(10, 30))).toBe(done);
   });
 });
 

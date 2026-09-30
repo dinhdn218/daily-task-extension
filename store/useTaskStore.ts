@@ -1,6 +1,7 @@
 import { toast } from 'sonner';
 import { create } from 'zustand';
 import { toDateKey } from '@/lib/date';
+import { markPastDueReminded } from '@/lib/reminders';
 import {
   applyTaskInput,
   createTask,
@@ -64,13 +65,14 @@ export const useTaskStore = create<TaskState>()((set, get) => {
     },
 
     async addTask(input) {
-      const task = createTask(input, crypto.randomUUID(), Date.now());
+      const now = Date.now();
+      const task = markPastDueReminded(createTask(input, crypto.randomUUID(), now), now);
       return (await commit(task.id, task)) ? task : undefined;
     },
 
     async updateTask(id, input) {
       const task = get().tasks[id];
-      if (task) await commit(id, applyTaskInput(task, input));
+      if (task) await commit(id, markPastDueReminded(applyTaskInput(task, input), Date.now()));
     },
 
     async setStatus(id, status) {
@@ -85,7 +87,7 @@ export const useTaskStore = create<TaskState>()((set, get) => {
 
     async moveToToday(id) {
       const task = get().tasks[id];
-      if (task) await commit(id, { ...task, dueDate: toDateKey(new Date()) });
+      if (task) await commit(id, markPastDueReminded({ ...task, dueDate: toDateKey(new Date()) }, Date.now()));
     },
 
     async deleteTask(id) {
