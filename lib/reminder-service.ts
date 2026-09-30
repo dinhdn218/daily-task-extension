@@ -33,7 +33,9 @@ export async function remindIfDue(id: string, now = Date.now()) {
     requireInteraction: true,
     priority: 2,
   });
-  await saveTask({ ...task, remindedFor: dueKey(task) });
+  // Đọc lại trước khi ghi: trong lúc chờ tạo thông báo, trang có thể vừa tick/sửa/xoá task.
+  const latest = await loadTask(id);
+  if (shouldRemind(latest, now)) await saveTask({ ...latest, remindedFor: dueKey(latest) });
   const message: ReminderMessage = { type: 'reminder', taskId: id };
   try {
     await browser.runtime.sendMessage(message);

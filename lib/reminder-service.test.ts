@@ -86,6 +86,21 @@ describe('remindIfDue', () => {
     expect(onMessage).toHaveBeenCalledWith({ type: 'reminder', taskId: 'a' }, {}, expect.any(Function));
   });
 
+  it('không ghi đè thay đổi mà trang vừa ghi trong lúc đang tạo thông báo', async () => {
+    await saveTask(task('a'));
+    vi.spyOn(browser.notifications, 'create').mockImplementationOnce(async () => {
+      // Người dùng tick xong đúng lúc thông báo đang được tạo.
+      await saveTask(task('a', { status: 'done', completedAt: at(10, 0) }));
+      return 'task:a';
+    });
+
+    await remindIfDue('a', at(10, 0));
+
+    const saved = await loadTask('a');
+    expect(saved).toMatchObject({ status: 'done', completedAt: at(10, 0) });
+    expect(saved?.remindedFor).toBeUndefined();
+  });
+
   it('không lỗi khi không có trang nào mở', async () => {
     await saveTask(task('a'));
     await expect(remindIfDue('a', at(10, 0))).resolves.toBeUndefined();
