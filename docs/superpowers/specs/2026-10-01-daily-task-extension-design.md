@@ -195,7 +195,7 @@ Lúc `onStartup`/`onInstalled`: task `todo` có `dueAt` trong khoảng **(bây g
 
 ### 6.4 Hạn chế (ghi vào README)
 
-- Chrome tắt hẳn thì không có thông báo. Mặc định Chrome trên Windows vẫn chạy nền sau khi đóng cửa sổ.
+- Thông báo chỉ bật khi Chrome đang chạy, tức còn ít nhất một cửa sổ mở: extension không xin quyền `background`, nên đóng hết cửa sổ là Chrome thoát. Lỡ giờ vì Chrome đã thoát thì được nhắc bù theo 6.3.
 - Windows Focus Assist / Do Not Disturb, hoặc tắt thông báo của Chrome trong Settings ⇒ không hiện. README có hướng dẫn kiểm tra.
 
 ## 7. Xử lý lỗi
