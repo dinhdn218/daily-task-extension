@@ -1,7 +1,7 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { toast } from 'sonner';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeBrowser } from 'wxt/testing/fake-browser';
 import type { Task } from '@/lib/task';
 import { useTaskStore } from '@/store/useTaskStore';
@@ -31,6 +31,10 @@ const renderList = (day = TODAY) =>
 beforeEach(() => {
   fakeBrowser.reset();
   vi.mocked(toast).mockClear();
+});
+
+afterEach(() => {
+  vi.useRealTimers();
 });
 
 describe('TaskList', () => {
@@ -102,7 +106,6 @@ describe('TaskList', () => {
 
     await user.click(screen.getByRole('button', { name: 'Dời sang hôm nay: Gửi báo cáo' }));
     expect(useTaskStore.getState().tasks.old?.dueDate).toBe(TODAY);
-    vi.useRealTimers();
   });
 
   it('xoá task → Toast có nút Hoàn tác khôi phục lại', async () => {

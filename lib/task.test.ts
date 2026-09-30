@@ -158,6 +158,12 @@ describe('nhóm và sắp xếp', () => {
     ]);
   });
 
+  it('todoForDay: trùng giờ thì task tạo trước đứng trước', () => {
+    const second = task({ dueTime: '09:00', createdAt: 2 });
+    const first = task({ dueTime: '09:00', createdAt: 1 });
+    expect(todoForDay([second, first], today)).toEqual([first, second]);
+  });
+
   it('doneForDay: xong gần nhất trước', () => {
     const first = task({ status: 'done', completedAt: 1 });
     const second = task({ status: 'done', completedAt: 2 });

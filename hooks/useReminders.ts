@@ -10,7 +10,7 @@ export function useReminders(): void {
     const listener = (message: unknown) => {
       if (!isReminderMessage(message) || document.visibilityState !== 'visible') return;
       const task = useTaskStore.getState().tasks[message.taskId];
-      if (!task) return;
+      if (!task || task.status !== 'todo' || !task.dueTime) return;
       toast(task.title, {
         id: `reminder:${task.id}`,
         description: reminderHeadline(task, Date.now()),

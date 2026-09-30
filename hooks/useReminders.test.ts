@@ -59,6 +59,20 @@ describe('useReminders', () => {
     expect(toast).not.toHaveBeenCalled();
   });
 
+  it('bỏ qua task đã xong', async () => {
+    useTaskStore.setState({ tasks: { a: { ...task, status: 'done', completedAt: 1 } } });
+    renderHook(() => useReminders());
+    await sendReminder();
+    expect(toast).not.toHaveBeenCalled();
+  });
+
+  it('bỏ qua task không còn giờ nhắc', async () => {
+    useTaskStore.setState({ tasks: { a: { ...task, dueTime: undefined } } });
+    renderHook(() => useReminders());
+    await sendReminder();
+    expect(toast).not.toHaveBeenCalled();
+  });
+
   it('gỡ listener khi unmount', async () => {
     const { unmount } = renderHook(() => useReminders());
     unmount();

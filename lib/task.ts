@@ -116,7 +116,7 @@ export function isTask(value: unknown): value is Task {
 
 /** Task có giờ đứng trước (giờ tăng dần), task không giờ sau (tạo trước đứng trước). */
 function compareTodo(a: Task, b: Task): number {
-  if (a.dueTime && b.dueTime) return a.dueTime.localeCompare(b.dueTime);
+  if (a.dueTime && b.dueTime) return a.dueTime.localeCompare(b.dueTime) || a.createdAt - b.createdAt;
   if (a.dueTime) return -1;
   if (b.dueTime) return 1;
   return a.createdAt - b.createdAt;

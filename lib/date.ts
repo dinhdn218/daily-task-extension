@@ -59,7 +59,7 @@ export function formatClock(date: Date): string {
   return `${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
-/** 'Hôm nay' | 'Ngày mai' | 'Hôm qua' | 'Thứ Sáu, 3/10' */
+/** 'Hôm nay' | 'Ngày mai' | 'Hôm qua' | 'Thứ Bảy, 3/10' */
 export function relativeDayLabel(key: DateKey, today: DateKey): string {
   if (key === today) return 'Hôm nay';
   if (key === addDays(today, 1)) return 'Ngày mai';

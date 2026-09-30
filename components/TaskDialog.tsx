@@ -111,7 +111,7 @@ function TaskForm({ state, onClose }: { state: NonNullable<TaskDialogState>; onC
           </Field>
         </div>
         {inPast && (
-          <p className="text-sm text-amber-600 dark:text-amber-400">Giờ này đã qua, sẽ không nhắc.</p>
+          <p className="text-sm text-amber-700 dark:text-amber-400">Giờ này đã qua, sẽ không nhắc.</p>
         )}
 
         <div className="flex items-center justify-between gap-2 pt-2">
